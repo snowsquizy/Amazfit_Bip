@@ -1,5 +1,5 @@
 # MiBand2
-Library to work with Xiaomi MiBand 2 (Support python2/python3)
+Library to work with Xiaomi MiBand 2 and Amazfit Bip
 [Read the Article here](https://medium.com/@a.nikishaev/how-i-hacked-xiaomi-miband-2-to-control-it-from-linux-a5bd2f36d3ad)
 
 # Contributors & Info Sources
@@ -14,7 +14,7 @@ Subscribe to my new online course: [LearnML.Today](http://learnml.today/)
 
 1) Install dependencies
 ```sh
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 2) Turn on your Bluetooth
 3) Unpair you MiBand2 from current mobile apps
