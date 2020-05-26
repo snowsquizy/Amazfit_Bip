@@ -1,3 +1,27 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+#  base.py
+#
+#  Copyright 2020 Andrew Taylor <andrew@snowsquizy.id.au>
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#
+#
+
 import struct
 import time
 import logging
@@ -7,19 +31,22 @@ try:
     from Queue import Queue, Empty
 except ImportError:
     from queue import Queue, Empty
-from bluepy.btle import Peripheral, DefaultDelegate, ADDR_TYPE_RANDOM, BTLEException
-
+from bluepy.btle import Peripheral, DefaultDelegate
+from bluepy.btle import ADDR_TYPE_RANDOM, BTLEException
+import d_base
 
 from constants import UUIDS, AUTH_STATES, ALERT_TYPES, QUEUE_TYPES
 
 
 class AuthenticationDelegate(DefaultDelegate):
 
-    """This Class inherits DefaultDelegate to handle the authentication process."""
+    """This Class inherits DefaultDelegate to
+    handle the authentication process."""
 
     def __init__(self, device):
         DefaultDelegate.__init__(self)
         self.device = device
+        self.sql_data = dataStore()
 
     def handleNotification(self, hnd, data):
         # Debug purposes
@@ -68,8 +95,8 @@ class AuthenticationDelegate(DefaultDelegate):
             else:
                 print("Unexpected data on handle " + str(hnd) + ": " + data.hex())
                 return
-         # The activity characteristic sends the previews recorded information
-         # from one given timestamp until now.
+        # The activity characteristic sends the previews recorded information
+        # from one given timestamp until now.
         elif hnd == self.device._char_activity.getHandle():
             if len(data) % 4 is not 1:
                 if self.device.last_timestamp > datetime.now() - timedelta(minutes=1):
@@ -89,30 +116,38 @@ class AuthenticationDelegate(DefaultDelegate):
                     self.device.last_timestamp = timestamp
                     # category = int.from_bytes(data[i:i + 1], byteorder='little')
                     category = struct.unpack("<B", data[i:i + 1])
-                    intensity = struct.unpack("B", data[i + 1:i + 2])[0]
-                    steps = struct.unpack("B", data[i + 2:i + 3])[0]
-                    heart_rate = struct.unpack("B", data[i + 3:i + 4])[0]
-
-                    print("{}: category: {}; acceleration {}; steps {}; heart rate {};".format(
-                        timestamp.strftime('%d.%m - %H:%M'),
-                        category,
-                        intensity,
-                        steps,
-                        heart_rate)
-                    )
-                    if self.device.outfile:
-                        self.device.outfile.write(f"{timestamp.strftime('%d.%m.%Y - %H:%M')},{category},{intensity},{steps},{heart_rate}\n")
+                    inten = struct.unpack("B", data[i + 1:i + 2])[0]
+                    sts = struct.unpack("B", data[i + 2:i + 3])[0]
+                    h_rate = struct.unpack("B", data[i + 3:i + 4])[0]
+                    # Purify Data for Storage
+                    categ = category[2:]
+                    cat = list(map(int, category))
+                    # convert datetime to unix time for storage in DB
+                    u_t = int(timestamp.timestamp())
+                    # group together data chunk and store for insertion
+                    self.sql_data.store((u_t, cat[0], inten, sts, h_rate))
 
                     i += 4
 
                     d = datetime.now().replace(second=0, microsecond=0) - timedelta(minutes=1)
                     if timestamp == d:
+                        d_base.store_watch_data(self.sql_data.return_data())
                         self.device.active = False
                         return
         else:
             self.device._log.error("Unhandled Response " + hex(hnd) + ": " +
                                    str(data.encode("hex")) + " len:" + str(len(data)))
 
+class dataStore():
+    def __init__(self):
+        self.watch_data = []
+
+    def store(self, new_data):
+        self.watch_data.append(new_data)
+
+    def return_data(self):
+        return self.watch_data
+    
 
 class MiBand2(Peripheral):
     # _KEY = b'\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x40\x41\x42\x43\x44\x45'
@@ -136,7 +171,7 @@ class MiBand2(Peripheral):
         Peripheral.__init__(self, mac_address, addrType=ADDR_TYPE_RANDOM)
         self._log.info('Connected')
 
-        self.outfile = None
+        self.outfile = "recorded.dat"
 
         self.timeout = timeout
         self.mac_address = mac_address
@@ -248,7 +283,7 @@ class MiBand2(Peripheral):
 
     @staticmethod
     def create_date_data(date):
-        data = struct.pack( 'hbbbbbbbxx', date.year, date.month, date.day, date.hour, date.minute, date.second, date.weekday(), 0 )
+        data = struct.pack('hbbbbbbbxx', date.year, date.month, date.day, date.hour, date.minute, date.second, date.weekday(), 0)
         return data
 
     def _parse_battery_response(self, bytes):
@@ -540,4 +575,3 @@ class MiBand2(Peripheral):
         trigger = b'\x01\x01' + ts + b'\x00\x08'
         self._char_fetch.write(trigger, False)
         self.active = True
-
