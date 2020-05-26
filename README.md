@@ -35,21 +35,26 @@ python example.py --help
 ```sh
 sudo hciconfig hci0 reset
 ```
-Also there is cool JS library that made Volodymyr Shymansky https://github.com/vshymanskyy/miband-js
+This program requires creation of SQLITE3 database with the following schema:
+CREATE TABLE `fitness` (
+	`d_t`	NUMERIC NOT NULL UNIQUE,
+	`r_k`	INTEGER NOT NULL,
+	`r_i`	INTEGER NOT NULL,
+	`s_t`	INTEGER NOT NULL,
+	`h_r`	INTEGER,
+	PRIMARY KEY(`d_t`)
+);
+CREATE TABLE `parameters` (
+	`id`	INTEGER NOT NULL,
+	`mac_add`	NUMERIC,
+	`battery`	INTEGER,
+	`soft_ver`	NUMERIC,
+	`hard_rev`	NUMERIC,
+	`ser_num`	INTEGER,
+	`u_time`	NUMERIC NOT NULL,
+	`hours`	INTEGER NOT NULL,
+	`s_image`	BLOB NOT NULL,
+	PRIMARY KEY(`id`)
+);
 
-# Donate
-If you like what im doing, you can send me some money for pepsi(i dont drink alcohol). https://patreon.com/mlworld
-
-<p xmlns:dct="http://purl.org/dc/terms/">
-  <a rel="license"
-     href="http://creativecommons.org/publicdomain/zero/1.0/">
-    <img src="http://i.creativecommons.org/p/zero/1.0/88x31.png" style="border-style: none;" alt="CC0" />
-  </a>
-  <br />
-  To the extent possible under law,
-  <a rel="dct:publisher"
-     href="http://medium.com/@a.nikishaev">
-    <span property="dct:title">Andrey Nikishaev</span></a>
-  has waived all copyright and related or neighboring rights to
-  <span property="dct:title">Library to work with Xiaomi MiBand 2 </span>.
-</p>
+You need to add the mac_add and 360px x 360px image in s_image 
