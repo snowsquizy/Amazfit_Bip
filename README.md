@@ -20,14 +20,18 @@ python3 -m pip install -r requirements.txt
 ```sh
 sudo hcitool lescan
 ```
+**************************************************************************
+Still being Worked on - Check out Orignal to auth device
+
 5) Run this to auth device
 ```sh
 python example.py --mac MAC_ADDRESS --init
 ```
+**************************************************************************
 6) Run this to call demo functions
 ```sh
-python example.py --standard --mac MAC_ADDRESS
-python example.py --help
+chmod +x bip_btle.py
+./bip_btle.py
 ```
 7) If you having problems(BLE can glitch sometimes) try this and repeat from 4)
 ```sh
