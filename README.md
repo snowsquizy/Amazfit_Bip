@@ -34,25 +34,27 @@ python example.py --help
 sudo hciconfig hci0 reset
 ```
 This program requires creation of SQLITE3 database with the following schema:
-CREATE TABLE `fitness` (
-	`d_t`	NUMERIC NOT NULL UNIQUE,
-	`r_k`	INTEGER NOT NULL,
-	`r_i`	INTEGER NOT NULL,
-	`s_t`	INTEGER NOT NULL,
-	`h_r`	INTEGER,
-	PRIMARY KEY(`d_t`)
-);
-CREATE TABLE `parameters` (
-	`id`	INTEGER NOT NULL,
-	`mac_add`	NUMERIC,
-	`battery`	INTEGER,
-	`soft_ver`	NUMERIC,
-	`hard_rev`	NUMERIC,
-	`ser_num`	INTEGER,
-	`u_time`	NUMERIC NOT NULL,
-	`hours`	INTEGER NOT NULL,
-	`s_image`	BLOB NOT NULL,
-	PRIMARY KEY(`id`)
-);
+
+CREATE TABLE fitness (
+
+	d_t	NUMERIC NOT NULL UNIQUE,
+	r_k	INTEGER NOT NULL,
+	r_i	INTEGER NOT NULL,
+	s_t	INTEGER NOT NULL,
+	h_r	INTEGER,
+	PRIMARY KEY(d_t) );
+
+CREATE TABLE parameters (
+
+	id	INTEGER NOT NULL,
+	mac_add		NUMERIC,
+	battery		INTEGER,
+	soft_ver	NUMERIC,
+	hard_rev	NUMERIC,
+	ser_num		INTEGER,
+	u_time		NUMERIC NOT NULL,
+	hours		INTEGER NOT NULL,
+	s_image		BLOB NOT NULL,
+	PRIMARY KEY(id) );
 
 You need to add the mac_add and 360px x 360px image in s_image 
