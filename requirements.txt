@@ -2,6 +2,10 @@
 sqlite3
 decimal
 csv
+pycairo
+PyGObject
+pillow
+pylab
 ###### Requirements with Version Specifiers ######
 bluepy==1.3.0
 pycrypto==2.6.1
