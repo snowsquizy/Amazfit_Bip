@@ -46,6 +46,7 @@ class guiWindow(Gtk.Window):
         Gtk.Window.__init__(self, title="Amazfit Bip Data Analytics Program")
         self.set_size_request(360, 720)
         self.set_resizable(False)
+        self.set_icon_from_file('icon.svg')
         self.MAC = params[0].decode("utf-8")
         self.HOURS = params[6]
         self.batt_per = params[1]
