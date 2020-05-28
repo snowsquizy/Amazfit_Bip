@@ -1,6 +1,5 @@
 ###### Requirements without Version Specifiers ######
 sqlite3
-decimal
 csv
 pycairo
 PyGObject
