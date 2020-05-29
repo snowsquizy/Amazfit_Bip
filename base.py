@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import struct
 import time
 import logging
 from datetime import datetime, timedelta
 from Crypto.Cipher import AES
-try:
-    from Queue import Queue, Empty
-except ImportError:
-    from queue import Queue, Empty
+from queue import Queue, Empty
 from bluepy.btle import Peripheral, DefaultDelegate
 from bluepy.btle import ADDR_TYPE_RANDOM, BTLEException
 import d_base
@@ -25,6 +23,8 @@ class AuthenticationDelegate(DefaultDelegate):
         DefaultDelegate.__init__(self)
         self.device = device
         self.sql_data = dataStore()
+        # Whether to store in Database
+        self.sqlite = True
 
     def handleNotification(self, hnd, data):
         # Debug purposes
@@ -65,7 +65,7 @@ class AuthenticationDelegate(DefaultDelegate):
                 hour = struct.unpack("b", data[11:12])[0]
                 minute = struct.unpack("b", data[12:13])[0]
                 self.device.first_timestamp = datetime(year, month, day, hour, minute)
-                print("Fetch data from {}-{}-{} {}:{}".format(year, month, day, hour, minute))
+                # print("Fetch data from {}-{}-{} {}:{}".format(year, month, day, hour, minute))
                 self.device._char_fetch.write(b'\x02', False)
             elif data[:3] == b'\x10\x02\x01':
                 self.device.active = False
@@ -97,14 +97,22 @@ class AuthenticationDelegate(DefaultDelegate):
                     inten = struct.unpack("B", data[i + 1:i + 2])[0]
                     sts = struct.unpack("B", data[i + 2:i + 3])[0]
                     h_rate = struct.unpack("B", data[i + 3:i + 4])[0]
-                    # Purify Data for Storage
-                    categ = category[2:]
-                    cat = list(map(int, category))
-                    # convert datetime to unix time for storage in DB
-                    u_t = int(timestamp.timestamp())
-                    # group together data chunk and store for insertion
-                    self.sql_data.store((u_t, cat[0], inten, sts, h_rate))
-
+                    if self.sqlite:
+                        # Purify Data for Storage
+                        categ = category[2:]
+                        cat = list(map(int, category))
+                        # convert datetime to unix time for storage in DB
+                        u_t = int(timestamp.timestamp())
+                        # group together data chunk and store for insertion
+                        self.sql_data.store((u_t, cat[0], inten, sts, h_rate))
+                    else:
+                        print("{}: category: {}; acceleration {}; steps {}; heart rate {};".format(
+                            timestamp.strftime('%d.%m - %H:%M'),
+                            cat,
+                            inten,
+                            sts,
+                            h_rate)
+                        )
                     i += 4
 
                     d = datetime.now().replace(second=0, microsecond=0) - timedelta(minutes=1)
@@ -128,10 +136,6 @@ class dataStore():
     
 
 class MiBand2(Peripheral):
-    # _KEY = b'\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x40\x41\x42\x43\x44\x45'
-    # _send_key_cmd = struct.pack('<18s', b'\x01\x08' + _KEY)
-    # _send_rnd_cmd = struct.pack('<2s', b'\x02\x08')
-    # _send_enc_key = struct.pack('<2s', b'\x03\x08')
     _KEY = b'\xf5\xd2\x29\x87\x65\x0a\x1d\x82\x05\xab\x82\xbe\xb9\x38\x59\xcf'
     _send_key_cmd = struct.pack('<18s', b'\x01\x00' + _KEY)
     _send_rnd_cmd = struct.pack('<2s', b'\x02\x00')
@@ -360,14 +364,24 @@ class MiBand2(Peripheral):
         svc = self.getServiceByUUID(UUIDS.SERVICE_DEVICE_INFO)
         char = svc.getCharacteristics(UUIDS.CHARACTERISTIC_REVISION)[0]
         data = char.read()
-        revision = struct.unpack('9s', data[-9:])[0] if len(data) == 9 else None
+        if len(data) == 9:
+            revision = struct.unpack('9s', data[-9:])[0]
+        elif len(data) == 18:
+            revision = data.decode('utf-8')[:9]
+        else:
+            revision = None
         return revision
 
     def get_hrdw_revision(self):
         svc = self.getServiceByUUID(UUIDS.SERVICE_DEVICE_INFO)
         char = svc.getCharacteristics(UUIDS.CHARACTERISTIC_HRDW_REVISION)[0]
         data = char.read()
-        revision = struct.unpack('8s', data[-8:])[0] if len(data) == 8 else None
+        if len(data) == 8:
+            revision = struct.unpack('8s', data[-8:])[0]
+        elif len(data) == 18:
+            revision = data.decode('utf-8')[:9]
+        else:
+            revision = None
         return revision
 
     def set_encoding(self, encoding="en_US"):
@@ -403,7 +417,12 @@ class MiBand2(Peripheral):
         svc = self.getServiceByUUID(UUIDS.SERVICE_DEVICE_INFO)
         char = svc.getCharacteristics(UUIDS.CHARACTERISTIC_SERIAL)[0]
         data = char.read()
-        serial = struct.unpack('12s', data[-12:])[0] if len(data) == 12 else None
+        if len(data) == 12:
+            serial = struct.unpack('12s', data[-12:])[0]
+        elif len(data) >= 1:
+            serial = data.decode('utf-8')
+        else:
+            serial = None
         return serial
 
     def get_steps(self):
@@ -543,7 +562,7 @@ class MiBand2(Peripheral):
     def start_get_previews_data(self, start_timestamp):
         self._auth_previews_data_notif(True)
         self.waitForNotifications(0.1)
-        print("Trigger activity communication")
+        # print("Trigger activity communication")
         year = struct.pack("<H", start_timestamp.year)
         month = bytes([struct.pack("<H", start_timestamp.month)[0]])
         day = bytes([struct.pack("<H", start_timestamp.day)[0]])
