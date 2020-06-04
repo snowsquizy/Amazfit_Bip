@@ -10,7 +10,6 @@ from queue import Queue, Empty
 from bluepy.btle import Peripheral, DefaultDelegate
 from bluepy.btle import ADDR_TYPE_RANDOM, BTLEException
 import d_base
-
 from constants import UUIDS, AUTH_STATES, ALERT_TYPES, QUEUE_TYPES
 
 
@@ -23,8 +22,6 @@ class AuthenticationDelegate(DefaultDelegate):
         DefaultDelegate.__init__(self)
         self.device = device
         self.sql_data = dataStore()
-        # Whether to store in Database
-        self.sqlite = True
 
     def handleNotification(self, hnd, data):
         # Debug purposes
@@ -65,7 +62,7 @@ class AuthenticationDelegate(DefaultDelegate):
                 hour = struct.unpack("b", data[11:12])[0]
                 minute = struct.unpack("b", data[12:13])[0]
                 self.device.first_timestamp = datetime(year, month, day, hour, minute)
-                # print("Fetch data from {}-{}-{} {}:{}".format(year, month, day, hour, minute))
+                print("Fetch data from {}-{}-{} {}:{}".format(year, month, day, hour, minute))
                 self.device._char_fetch.write(b'\x02', False)
             elif data[:3] == b'\x10\x02\x01':
                 self.device.active = False
@@ -97,29 +94,21 @@ class AuthenticationDelegate(DefaultDelegate):
                     inten = struct.unpack("B", data[i + 1:i + 2])[0]
                     sts = struct.unpack("B", data[i + 2:i + 3])[0]
                     h_rate = struct.unpack("B", data[i + 3:i + 4])[0]
-                    if self.sqlite:
-                        # Purify Data for Storage
-                        categ = category[2:]
-                        cat = list(map(int, category))
-                        # convert datetime to unix time for storage in DB
-                        u_t = int(timestamp.timestamp())
-                        # group together data chunk and store for insertion
-                        self.sql_data.store((u_t, cat[0], inten, sts, h_rate))
-                    else:
-                        print("{}: category: {}; acceleration {}; steps {}; heart rate {};".format(
-                            timestamp.strftime('%d.%m - %H:%M'),
-                            cat,
-                            inten,
-                            sts,
-                            h_rate)
-                        )
+                    # Purify Data for Storage
+                    categ = category[2:]
+                    cat = list(map(int, category))
+                    # convert datetime to unix time for storage in DB
+                    u_t = int(timestamp.timestamp())
+                    # group together data chunk and store for insertion
+                    self.sql_data.store((u_t, cat[0], inten, sts, h_rate))
+
                     i += 4
 
                     d = datetime.now().replace(second=0, microsecond=0) - timedelta(minutes=1)
                     if timestamp == d:
                         d_base.store_watch_data(self.sql_data.return_data())
                         self.device.active = False
-                        return
+                        return 
         else:
             self.device._log.error("Unhandled Response " + hex(hnd) + ": " +
                                    str(data.encode("hex")) + " len:" + str(len(data)))
@@ -136,6 +125,10 @@ class dataStore():
     
 
 class MiBand2(Peripheral):
+    # _KEY = b'\x30\x31\x32\x33\x34\x35\x36\x37\x38\x39\x40\x41\x42\x43\x44\x45'
+    # _send_key_cmd = struct.pack('<18s', b'\x01\x08' + _KEY)
+    # _send_rnd_cmd = struct.pack('<2s', b'\x02\x08')
+    # _send_enc_key = struct.pack('<2s', b'\x03\x08')
     _KEY = b'\xf5\xd2\x29\x87\x65\x0a\x1d\x82\x05\xab\x82\xbe\xb9\x38\x59\xcf'
     _send_key_cmd = struct.pack('<18s', b'\x01\x00' + _KEY)
     _send_rnd_cmd = struct.pack('<2s', b'\x02\x00')

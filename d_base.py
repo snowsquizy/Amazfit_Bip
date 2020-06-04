@@ -57,8 +57,12 @@ import csv
 import os
 
 # Variables
-DB = "fitness.db"
 testing = False
+app_file_name = "app.db"
+pwd = os.getcwd()
+app_db = pwd + '/' + app_file_name
+data_file_name = "fitness.db"
+data_db = pwd + '/' + data_file_name
 
 
 def get_para(c_name):
@@ -67,18 +71,21 @@ def get_para(c_name):
     settings
     ARGS:       c_name = Colomn to get data from
     RETURNS:    row[0] = Id
-                row[1] = MAC Address
-                row[2] = battery percentage
-                row[3] = software revision
-                row[4] = hardware revision
-                row[5] = serial number
-                row[6] = last update time
-                row[7] = Hours Interval
-                row[8] = Blank Image
+                row[1] = appliaction db
+                row[2] = table schema
+                row[3] = MAC Address
+                row[4] = battery percentage
+                row[5] = software revision
+                row[6] = hardware version
+                row[7] = serial number
+                row[8] = last update time
+                row[9] = Hours Interval
+                row[10] = Blank Image
+                row[11] = App Icon
     """
     result = []
     try:
-        conn = connect_DB()
+        conn = connect_DB(app_db)
         sql = conn.cursor()
         if testing:
             print("Cursor Created")
@@ -87,7 +94,8 @@ def get_para(c_name):
         row = sql.fetchone()
         result = row[0]
     except Error:
-        print("Error while working with SQLite ", Error)
+        print(
+            "Error with SQLite retrieving app data {}".format(Error))
     finally:
         conn.close()
     return result
@@ -101,7 +109,7 @@ def set_para(c_name, n_value):
     RETURNS     None
     """
     try:
-        conn = connect_DB()
+        conn = connect_DB(app_db)
         sql = conn.cursor()
         if testing:
             print("Cursor Created")
@@ -129,7 +137,7 @@ def get_watch_data(hours):
     date_now = int(datetime.now().timestamp())
     date_before = date_now - (hours * 60 * 60)
     try:
-        conn = connect_DB()
+        conn = connect_DB(data_db)
         sql = conn.cursor()
         if testing:
             print("Cursor Created")
@@ -163,7 +171,7 @@ def store_watch_data(in_data):
     """
     update_utime = None
     try:
-        conn = connect_DB()
+        conn = connect_DB(data_db)
         sql = conn.cursor()
         if testing:
             print("Cursor Created")
@@ -176,7 +184,7 @@ def store_watch_data(in_data):
         conn.commit()
         for item in in_data:
             update_utime = item[0]
-        update_utime = int(update_utime) - 86400
+        update_utime = int(update_utime) - 43200
         set_para('u_time', update_utime)
     except Error:
         print("Error while working with SQLite ", Error)
@@ -191,7 +199,7 @@ def get_all_data():
     RETURNS:    file_n - File Name Created under
     """
     try:
-        conn = connect_DB()
+        conn = connect_DB(data_db)
         sql = conn.cursor()
         if testing:
             print("Cursor Created")
@@ -207,8 +215,8 @@ def get_all_data():
         return file_n
 
 
-def connect_DB():
-    conn = sqlite3.connect(DB)
+def connect_DB(db_name):
+    conn = sqlite3.connect(db_name)
     if testing:
         print("Connected to DB")
     conn.text_factory = bytes

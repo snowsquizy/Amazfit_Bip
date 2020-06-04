@@ -71,6 +71,7 @@ class ALERT_TYPES(object):
     FOCUS_MESSAGE = b'\xfe'
 
 
+
 class QUEUE_TYPES(object):
 
     __metaclass__ = Immutable
