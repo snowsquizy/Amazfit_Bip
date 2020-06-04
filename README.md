@@ -20,45 +20,14 @@ python3 -m pip install -r requirements.txt
 ```sh
 sudo hcitool lescan
 ```
-**************************************************************************
-Still being Worked on - Check out Orignal to auth device
-
-5) Run this to auth device
+5) Run this 
 ```sh
-python example.py --mac MAC_ADDRESS --init
+chmod +x main.py
+./main.py
 ```
-**************************************************************************
-6) Run this to call demo functions
-```sh
-chmod +x bip_btle.py
-./bip_btle.py
-```
+6) The setup button on the bottom left allows for device mac address input and initialisation
 7) If you having problems(BLE can glitch sometimes) try this and repeat from 4)
 ```sh
 sudo hciconfig hci0 reset
 ```
-This program requires creation of SQLITE3 database with the following schema:
 
-CREATE TABLE fitness (
-
-	d_t	NUMERIC NOT NULL UNIQUE,
-	r_k	INTEGER NOT NULL,
-	r_i	INTEGER NOT NULL,
-	s_t	INTEGER NOT NULL,
-	h_r	INTEGER,
-	PRIMARY KEY(d_t) );
-
-CREATE TABLE parameters (
-
-	id	INTEGER NOT NULL,
-	mac_add		NUMERIC,
-	battery		INTEGER,
-	soft_ver	NUMERIC,
-	hard_rev	NUMERIC,
-	ser_num		INTEGER,
-	u_time		NUMERIC NOT NULL,
-	hours		INTEGER NOT NULL,
-	s_image		BLOB NOT NULL,
-	PRIMARY KEY(id) );
-
-You need to add the mac_add and 360px x 360px image in s_image 
